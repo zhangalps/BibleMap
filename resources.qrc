@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resource/map.db</file>
+        <file>resource/bible.db</file>
+    </qresource>
+</RCC>
