@@ -87,7 +87,47 @@ QVariantList DatabaseManager::getAllPlaces()
 
     double lastLat = -999.0;
     double lastLon = -999.0;
-    int currentOverlap = 0;
+    QVariantList currentCluster;
+
+    auto commitCluster = [&]() {
+        if (currentCluster.isEmpty()) return;
+
+        QVariantMap firstPlace = currentCluster.first().toMap();
+        int minZoom = 12; // default for small places
+        int count = currentCluster.size();
+        
+        if (count > 5) {
+            minZoom = 5;
+        } else if (count > 1) {
+            minZoom = 7;
+        } else {
+            // deterministic visibility based on ID for single places
+            int id = firstPlace["id"].toInt();
+            if (id % 10 == 0) minZoom = 6;
+            else if (id % 5 == 0) minZoom = 8;
+            else if (id % 2 == 0) minZoom = 10;
+            else minZoom = 12;
+        }
+
+        if (count == 1) {
+            QVariantMap m = firstPlace;
+            m["isCluster"] = false;
+            m["minZoom"] = minZoom;
+            list.append(m);
+        } else {
+            QVariantMap clusterMap;
+            clusterMap["id"] = -1;
+            clusterMap["name_cn"] = firstPlace["name_cn"].toString() + QString(" 等(%1处)").arg(count);
+            clusterMap["lat"] = firstPlace["lat"];
+            clusterMap["lon"] = firstPlace["lon"];
+            clusterMap["type"] = "cluster";
+            clusterMap["isCluster"] = true;
+            clusterMap["subPlaces"] = currentCluster;
+            clusterMap["minZoom"] = minZoom;
+            list.append(clusterMap);
+        }
+        currentCluster.clear();
+    };
 
     if (query.exec()) {
         while (query.next()) {
@@ -104,24 +144,29 @@ QVariantList DatabaseManager::getAllPlaces()
             double lat = query.value(2).toDouble();
             double lon = query.value(3).toDouble();
 
-            // If within 0.01 degrees (~1km), consider it overlapping
-            if (std::abs(lat - lastLat) < 0.01 && std::abs(lon - lastLon) < 0.01) {
-                currentOverlap++;
-            } else {
-                currentOverlap = 0;
-                lastLat = lat;
-                lastLon = lon;
-            }
-
             QVariantMap map;
             map["id"] = query.value(0).toInt();
             map["name_cn"] = baseName;
             map["lat"] = lat;
             map["lon"] = lon;
             map["type"] = query.value(4).toString();
-            map["overlapIndex"] = currentOverlap;
-            list.append(map);
+
+            if (currentCluster.isEmpty()) {
+                currentCluster.append(map);
+                lastLat = lat;
+                lastLon = lon;
+            } else {
+                if (std::abs(lat - lastLat) < 0.01 && std::abs(lon - lastLon) < 0.01) {
+                    currentCluster.append(map);
+                } else {
+                    commitCluster();
+                    currentCluster.append(map);
+                    lastLat = lat;
+                    lastLon = lon;
+                }
+            }
         }
+        commitCluster();
     } else {
         qWarning() << "getAllPlaces error:" << query.lastError().text();
     }
@@ -289,6 +334,10 @@ QString DatabaseManager::adapterBookName(const QString &shortName)
     lowName[replaceIndex] = lowName[replaceIndex].toUpper();
     if (lowName == "Ezk" || lowName == "Ezek") {
         lowName = "Eze";
+    }else if (lowName == "Mrk") {
+        lowName = "Mar";
+    }else if (lowName == "Jhn") {
+        lowName = "Joh";
     }
     return lowName;
 }

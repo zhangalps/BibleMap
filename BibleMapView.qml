@@ -60,73 +60,31 @@ Item {
                 var place = results[0];
                 bible_map.map.center = QtPositioning.coordinate(place.lat, place.lon);
                 bible_map.map.zoomLevel = 12;
-                updateMarkers();
-                openPopup(place.id, place.name_cn);
+                openPopup(place.id, place.name_cn, false);
             }
         }
     }
 
-    function updateMarkers() {
-        if (!bible_map || !bible_map.map || bible_map.map.width === 0) return;
-        if (!root.allPlaces || root.allPlaces.length === 0) return;
-
-        var topLeft = bible_map.map.toCoordinate(Qt.point(0, 0));
-        var bottomRight = bible_map.map.toCoordinate(Qt.point(bible_map.map.width, bible_map.map.height));
-
-        if (topLeft.isValid && bottomRight.isValid) {
-            var minLat = Math.min(topLeft.latitude, bottomRight.latitude);
-            var maxLat = Math.max(topLeft.latitude, bottomRight.latitude);
-            var minLon = Math.min(topLeft.longitude, bottomRight.longitude);
-            var maxLon = Math.max(topLeft.longitude, bottomRight.longitude);
-            var zoom = bible_map.map.zoomLevel;
-            
-            var limit = 20;
-            if (zoom > 14) limit = 1000;
-            else if (zoom > 11) limit = 500;
-            else if (zoom > 8) limit = 200;
-            else if (zoom > 5) limit = 100;
-
-            var candidates = [];
-            for (var i = 0; i < root.allPlaces.length; i++) {
-                var p = root.allPlaces[i];
-                if (p.lat >= minLat && p.lat <= maxLat && p.lon >= minLon && p.lon <= maxLon) {
-                    candidates.push(p);
-                }
-            }
-
-            if (candidates.length > limit) {
-                candidates = candidates.slice(0, limit);
-            }
-
-            var visiblePlaces = [];
-            for (var i = 0; i < candidates.length; i++) {
-                var p = candidates[i];
-                // Keep original coordinates and use overlapIndex from backend
-                var placeForModel = {
-                    id: p.id,
-                    name_cn: p.name_cn,
-                    lat: p.lat,
-                    lon: p.lon,
-                    type: p.type,
-                    overlapIndex: p.overlapIndex || 0
-                };
-                visiblePlaces.push(placeForModel);
-            }
-
-            placeModel.clear();
-            for (var i = 0; i < visiblePlaces.length; i++) {
-                placeModel.append(visiblePlaces[i]);
-            }
+    function openClusterPopup(subPlaces, title) {
+        placePopup.isClusterMode = true;
+        placePopup.cameFromCluster = true;
+        placePopup.clusterTitle = title;
+        clusterModel.clear();
+        for (var i = 0; i < subPlaces.length; i++) {
+            clusterModel.append(subPlaces[i]);
         }
+        placePopupTitle.text = title;
+        placePopup.open();
     }
 
-    function openPopup(placeId, placeName) {
+    function openPopup(placeId, placeName, fromCluster) {
+        placePopup.isClusterMode = false;
+        placePopup.cameFromCluster = (fromCluster === true);
         var refs = dbManager.getPlaceRefs(placeId);
         refModel.clear();
         for (var i = 0; i < refs.length; i++) {
             refModel.append(refs[i]);
         }
-        console.log("placeName:::" + placeName)
         placePopupTitle.text = placeName;
         placePopup.open();
     }
@@ -260,21 +218,20 @@ Item {
             }
         }
 
-        Timer {
-            id: updateTimer
-            interval: 500
-            onTriggered: root.updateMarkers()
-        }
-
-        Connections {
-            target: bible_map.map
-            function onCenterChanged() { updateTimer.restart() }
-            function onZoomLevelChanged() { updateTimer.restart() }
-        }
-
         Component.onCompleted: {
             root.allPlaces = dbManager.getAllPlaces()
-            updateTimer.restart()
+            placeModel.clear()
+            for (var i = 0; i < root.allPlaces.length; i++) {
+                placeModel.append({
+                    id: root.allPlaces[i].id,
+                    name_cn: root.allPlaces[i].name_cn,
+                    lat: root.allPlaces[i].lat,
+                    lon: root.allPlaces[i].lon,
+                    type: root.allPlaces[i].type,
+                    isCluster: root.allPlaces[i].isCluster || false,
+                    minZoom: root.allPlaces[i].minZoom || 12
+                })
+            }
         }
 
         MapItemView {
@@ -282,15 +239,15 @@ Item {
             parent: bible_map.map
             delegate: MapQuickItem {
                 coordinate: QtPositioning.coordinate(model.lat, model.lon)
-                // Shift visually by 30 pixels per overlapIndex (stacking them downwards)
-                anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height - (model.overlapIndex * 30))
+                anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height)
+                visible: bible_map.map.zoomLevel >= (model.minZoom || 12)
                 sourceItem: Column {
                     spacing: 4
                     Rectangle {
                         width: 16
                         height: 16
                         radius: 8
-                        color: "#FFB300" // Yellow circle
+                        color: model.isCluster ? "#FF5722" : "#FFB300" // Different color for cluster
                         border.color: "white"
                         border.width: 3
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -299,7 +256,19 @@ Item {
                             anchors.fill: parent
                             anchors.margins: -10 // larger hit area
                             onClicked: {
-                                root.openPopup(model.id, model.name_cn);
+                                if (model.isCluster) {
+                                    var origSubPlaces = [];
+                                    for (var i = 0; i < root.allPlaces.length; i++) {
+                                        var p = root.allPlaces[i];
+                                        if (p.isCluster && p.lat === model.lat && p.lon === model.lon) {
+                                            origSubPlaces = p.subPlaces;
+                                            break;
+                                        }
+                                    }
+                                    root.openClusterPopup(origSubPlaces, model.name_cn);
+                                } else {
+                                    root.openPopup(model.id, model.name_cn, false);
+                                }
                             }
                         }
                     }
@@ -340,6 +309,9 @@ Item {
 
     Rectangle {
         id: placePopup
+        property bool isClusterMode: false
+        property bool cameFromCluster: false
+        property string clusterTitle: ""
         anchors {
             bottom: parent.bottom
         }
@@ -375,8 +347,20 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
 
+                Button {
+                    text: "❮ 返回"
+                    flat: true
+                    font.pixelSize: 16
+                    visible: !placePopup.isClusterMode && placePopup.cameFromCluster
+                    onClicked: {
+                        placePopup.isClusterMode = true;
+                        placePopupTitle.text = placePopup.clusterTitle;
+                    }
+                }
+
                 Text {
                     text: "\uD83D\uDCCD" // Pin emoji
+                    visible: placePopup.isClusterMode || !placePopup.cameFromCluster
                     font.pixelSize: 24
                 }
 
@@ -396,25 +380,8 @@ Item {
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                height: descText.implicitHeight + 20
-                color: "#f8f9fa"
-                radius: 8
-                visible: false
-
-                Text {
-                    id: descText
-                    anchors.fill: parent
-                    anchors.margins: 10
-                    text: "犹大的城邑，大卫的故乡，也是耶稣基督降生的地方。" // Mocked desc
-                    wrapMode: Text.WordWrap
-                    font.pixelSize: 14
-                    color: "#555"
-                }
-            }
-
             RowLayout {
+                visible: !placePopup.isClusterMode
                 Text { text: "\uD83D\uDCD6"; font.pixelSize: 16 }
                 Text {
                     text: "发生在此处的经文"
@@ -423,7 +390,10 @@ Item {
                     color: "#333"
                 }
             }
+
             ListView {
+                id: refListView
+                visible: !placePopup.isClusterMode
                 interactive: true
                 Layout.fillWidth: true
                 Layout.fillHeight: true
@@ -488,6 +458,51 @@ Item {
                                                chapterNum: model.chapter,
                                                targetVerse: model.verse
                                            });
+                        }
+                    }
+                }
+            }
+
+            ListView {
+                id: clusterListView
+                visible: placePopup.isClusterMode
+                interactive: true
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                model: ListModel { id: clusterModel }
+                clip: true
+                spacing: 10
+                delegate: Rectangle {
+                    width: ListView.view.width
+                    height: 60
+                    border.color: "#eee"
+                    border.width: 1
+                    radius: 8
+                    
+                    RowLayout {
+                        anchors.fill: parent
+                        anchors.margins: 15
+                        Text {
+                            text: "📍"
+                            font.pixelSize: 18
+                        }
+                        Text {
+                            text: model.name_cn
+                            font.pixelSize: 16
+                            font.bold: true
+                            color: "#333"
+                            Layout.fillWidth: true
+                        }
+                        Text {
+                            text: "查看经文 ❯"
+                            font.pixelSize: 14
+                            color: "#2C68E6"
+                        }
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            root.openPopup(model.id, model.name_cn, true);
                         }
                     }
                 }
