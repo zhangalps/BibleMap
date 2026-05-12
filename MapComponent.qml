@@ -223,7 +223,7 @@ MapView {
         handle: Rectangle {
             x: zoomSlider.leftPadding + zoomSlider.width / 2 - width / 2//
             y: zoomSlider.topPadding + zoomSlider.visualPosition * (zoomSlider.height - height)//zoomSlider.availableHeight / 2 - height / 2
-            implicitWidth: zoomSlider.width * 1.5
+            implicitWidth: zoomSlider.width * 2
             implicitHeight: implicitWidth
             radius: height / 2
             color: zoomSlider.pressed ? "#f0f0f0" : "#f6f6f6"

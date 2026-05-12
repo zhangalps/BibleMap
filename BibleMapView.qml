@@ -235,10 +235,9 @@ Item {
                         border.width: 3
                         anchors.horizontalCenter: parent.horizontalCenter
                         
-                        MouseArea {
-                            anchors.fill: parent
-                            anchors.margins: -10 // larger hit area
-                            onClicked: {
+                        TapHandler {
+                            margin: 10 // larger hit area
+                            onTapped: {
                                 if (model.isCluster) {
                                     var origSubPlaces = [];
                                     for (var i = 0; i < root.allPlaces.length; i++) {
