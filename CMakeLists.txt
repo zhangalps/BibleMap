@@ -6,7 +6,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-find_package(Qt6 REQUIRED COMPONENTS Quick Location Positioning Sql)
+find_package(Qt6 REQUIRED COMPONENTS Core Quick QuickControls2 Location Positioning Sql)
 
 
 qt_add_executable(appBibileMap
@@ -24,6 +24,9 @@ qt_add_qml_module(appBibileMap
         BibleMapView.qml
         MapComponent.qml
         BiblePage.qml
+        SearchBarView.qml
+        ActionButtuon.qml
+        ImageButton.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -39,9 +42,11 @@ set_target_properties(appBibileMap PROPERTIES
 
 target_link_libraries(appBibileMap
     PRIVATE Qt6::Quick
+        Qt6::Core
         Qt6::Location
         Qt6::Positioning
         Qt6::Sql
+        Qt6::QuickControls2
 )
 
 include(GNUInstallDirs)

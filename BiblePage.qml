@@ -28,27 +28,26 @@ Item {
                 anchors.bottom: parent.bottom
             }
             
-            RowLayout {
-                anchors.fill: parent
-                anchors.margins: 10
-                
-                Button {
-                    text: "\u2190" // left arrow
-                    flat: true
-                    font.pixelSize: 24
-                    onClicked: stackView.pop()
+            ImageButton {
+                anchors {
+                    verticalCenter: parent.verticalCenter
+                    left: parent.left
+                    leftMargin: 10
                 }
-                
-                Item { Layout.fillWidth: true } // Spacer
-                
-                Text {
-                    text: bookName_cn + " 第 " + chapterNum + " 章"
-                    font.pixelSize: 18
-                    font.bold: true
-                    color: "#333333"
+                width: 40
+                height: 40
+                iconPath: "qrc:/resource/back.svg"
+                onImgClicked: {
+                    stackView.pop()
                 }
-                
-                Item { Layout.fillWidth: true } // Spacer
+            }
+
+            Text {
+                anchors.centerIn: parent
+                text: bookName_cn + " 第 " + chapterNum + " 章"
+                font.pixelSize: 18
+                // font.bold: true
+                color: "#333333"
             }
         }
 
@@ -108,8 +107,10 @@ Item {
                 RowLayout {
                     anchors.centerIn: parent
                     spacing: 20
-                    Button {
-                        text: "Previous Chapter"
+                    ActionButtuon {
+                        content: "上一章"
+                        width: 80
+                        height: 40
                         onClicked: {
                             if (chapterNum > 1) {
                                 chapterNum--
@@ -117,8 +118,10 @@ Item {
                             }
                         }
                     }
-                    Button {
-                        text: "Next Chapter"
+                    ActionButtuon {
+                        content: "下一章"
+                        width: 80
+                        height: 40
                         onClicked: {
                             chapterNum++
                             loadVerses()

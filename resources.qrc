@@ -2,5 +2,10 @@
     <qresource prefix="/">
         <file>resource/map.db</file>
         <file>resource/bible.db</file>
+        <file>resource/back.svg</file>
+        <file>resource/bible.svg</file>
+        <file>resource/bible_selected.svg</file>
+        <file>resource/search.svg</file>
+        <file>resource/cancel.svg</file>
     </qresource>
 </RCC>

@@ -182,23 +182,52 @@ MapView {
     }
 
     Slider {
-        id: zoomSlider;
+        id: zoomSlider
         z: map.z + 3
         from: map.minimumZoomLevel;
         to: map.maximumZoomLevel;
         anchors{
-          leftMargin: 10
-          rightMargin: 10
-          topMargin: 100
-          bottomMargin: 30
+            bottom: scale.top
+            top: parent.top
+            right: parent.right
+            rightMargin: 15
+            topMargin: 100
+            bottomMargin: 30
         }
-        anchors.bottom: scale.top
-        anchors.top: parent.top
-        anchors.right: parent.right
+        width: 10
         orientation : Qt.Vertical
         value: map.zoomLevel
+        leftPadding: 0
+        topPadding:0
+        bottomPadding: 0
         onValueChanged: {
             map.zoomLevel = value
+        }
+
+        background: Rectangle {
+            x: zoomSlider.leftPadding
+            y: zoomSlider.topPadding + zoomSlider.availableHeight / 2 - height / 2
+            width: zoomSlider.width//availableWidth
+            height: zoomSlider.height
+            radius: width / 2
+            color: "#AAbdbebf"
+
+            Rectangle {
+                width: parent.width
+                height: zoomSlider.visualPosition * parent.height
+                color: "#4a90e2"
+                radius: width / 2
+            }
+        }
+
+        handle: Rectangle {
+            x: zoomSlider.leftPadding + zoomSlider.width / 2 - width / 2//
+            y: zoomSlider.topPadding + zoomSlider.visualPosition * (zoomSlider.height - height)//zoomSlider.availableHeight / 2 - height / 2
+            implicitWidth: zoomSlider.width * 1.5
+            implicitHeight: implicitWidth
+            radius: height / 2
+            color: zoomSlider.pressed ? "#f0f0f0" : "#f6f6f6"
+            border.color: "#FFFFFF"
         }
     }
 }

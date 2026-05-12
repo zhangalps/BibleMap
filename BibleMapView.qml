@@ -11,6 +11,7 @@ Item {
         QtPositioning.coordinate(30.8010, 31.8410),  // 兰塞 (Rameses) - 出发地
         QtPositioning.coordinate(30.5500, 32.0900),  // 疏割 (Succoth)
         QtPositioning.coordinate(29.9800, 32.5500),  // 伊坦/红海边 (Etham / near Suez)
+        QtPositioning.coordinate(29.1000, 32.6500),  // 以琳 (Elim)
         QtPositioning.coordinate(29.1000, 33.1000),  // 以琳 (Elim)
         QtPositioning.coordinate(28.5390, 33.9750),  // 西奈山 (Mount Sinai / Jebel Musa)
         QtPositioning.coordinate(29.5300, 34.9900),  // 以旬迦别 (Ezion-Geber / 亚喀巴)
@@ -118,7 +119,7 @@ Item {
         id: bible_map
         // anchors.fill: parent
         anchors{
-        top: parent.top
+            top: parent.top
         }
         height: parent.height
         width: parent.width
@@ -133,7 +134,7 @@ Item {
         }
 
         // Search Bar overlay
-        RowLayout {
+        Row {
             z: 2
             anchors.top: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
@@ -141,77 +142,59 @@ Item {
             width: Math.min(parent.width - 40, 600)
             height: 48
             spacing: 10
-            
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                radius: 24
-                color: "white"
-                border.color: "#e0e0e0"
-                
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.leftMargin: 15
-                    anchors.rightMargin: 15
-                    spacing: 10
-                    
-                    Text { text: "\uD83D\uDD0D"; font.pixelSize: 18; color: "#888" }
-                    
-                    TextField {
-                        id: searchInput
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        placeholderText: "搜索圣经地点..."
-                        background: null
-                        font.pixelSize: 16
-                        verticalAlignment: TextInput.AlignVCenter
-                        onAccepted: root.performSearch()
-                    }
-                }
+
+            SearchBarView{
+                id: searchInput
+                width: parent.width - routeBtn.width - 10
+
+                height: 42
+                onAccepted: root.performSearch()
             }
             
-            Button {
+            ActionButtuon {
                 id: routeBtn
-                Layout.preferredWidth: 48
-                Layout.preferredHeight: 48
-                background: Rectangle {
-                    color: "#2C68E6"
-                    radius: 24
+                property bool closeMenu: false
+                anchors.verticalCenter: searchInput.verticalCenter
+                width: 52
+                height: 32
+                content: "路线"
+                onClicked: {
+                    routeMenu.open()
                 }
-                contentItem: Text {
-                    text: "\u2630" // Route icon placeholder
-                    color: "white"
-                    font.pixelSize: 20
-                    horizontalAlignment: Text.AlignHCenter
-                    verticalAlignment: Text.AlignVCenter
-                }
-                onClicked: routeMenu.open()
                 
                 Menu {
                     id: routeMenu
                     y: routeBtn.height + 10
-                    width: 250
+                    width: 150
+                    onOpened: {
+                        routeBtn.closeMenu = true
+                    }
+
+                    onClosed: {
+                        routeBtn.closeMenu = false
+                    }
                     
                     Label {
                         text: "切换历史路线"
                         color: "#888"
-                        padding: 15
+                        padding: 5
                         font.pixelSize: 12
                     }
-                    MenuItem {
+
+                    Action {
                         text: "清除路线 / 自由探索"
                         onTriggered: { currentRoute = -1 }
                     }
-                    MenuItem {
-                        text: "\uD83D\uDD34 出埃及路线 (概略)"
+                    Action {
+                        text: "出埃及路线 (概略)"
                         onTriggered: { currentRoute = 0 }
                     }
-                    MenuItem {
-                        text: "\uD83D\uDD35 耶稣生平路线"
+                    Action {
+                        text: "耶稣生平路线"
                         onTriggered: { currentRoute = 1 }
                     }
-                    MenuItem {
-                        text: "\uD83D\uDFE2 保罗第一次传道"
+                    Action {
+                        text: "保罗第一次传道"
                         onTriggered: { currentRoute = 2 }
                     }
                 }
@@ -223,14 +206,14 @@ Item {
             placeModel.clear()
             for (var i = 0; i < root.allPlaces.length; i++) {
                 placeModel.append({
-                    id: root.allPlaces[i].id,
-                    name_cn: root.allPlaces[i].name_cn,
-                    lat: root.allPlaces[i].lat,
-                    lon: root.allPlaces[i].lon,
-                    type: root.allPlaces[i].type,
-                    isCluster: root.allPlaces[i].isCluster || false,
-                    minZoom: root.allPlaces[i].minZoom || 12
-                })
+                                      id: root.allPlaces[i].id,
+                                      name_cn: root.allPlaces[i].name_cn,
+                                      lat: root.allPlaces[i].lat,
+                                      lon: root.allPlaces[i].lon,
+                                      type: root.allPlaces[i].type,
+                                      isCluster: root.allPlaces[i].isCluster || false,
+                                      minZoom: root.allPlaces[i].minZoom || 12
+                                  })
             }
         }
 
@@ -347,19 +330,19 @@ Item {
             RowLayout {
                 Layout.fillWidth: true
 
-                Button {
-                    text: "❮ 返回"
-                    flat: true
-                    font.pixelSize: 16
+                ImageButton {
+                    iconPath: "qrc:/resource/back.svg"
+                    width: 40
+                    height: 40
                     visible: !placePopup.isClusterMode && placePopup.cameFromCluster
-                    onClicked: {
+                    onImgClicked: {
                         placePopup.isClusterMode = true;
                         placePopupTitle.text = placePopup.clusterTitle;
                     }
                 }
 
                 Text {
-                    text: "\uD83D\uDCCD" // Pin emoji
+                    text: "*️" // Pin emoji
                     visible: placePopup.isClusterMode || !placePopup.cameFromCluster
                     font.pixelSize: 24
                 }
@@ -367,26 +350,26 @@ Item {
                 Text {
                     id: placePopupTitle
                     font.pixelSize: 22
-                    font.bold: true
+                    // font.bold: true
                     color: "#111"
                     Layout.fillWidth: true
                 }
 
-                Button {
-                    text: "\u2715"
-                    flat: true
-                    font.pixelSize: 18
-                    onClicked: placePopup.close()
+                ImageButton {
+                    iconPath: "qrc:/resource/cancel.svg"
+                    width: 40
+                    height: 40
+                    onImgClicked: placePopup.close()
                 }
             }
 
             RowLayout {
                 visible: !placePopup.isClusterMode
-                Text { text: "\uD83D\uDCD6"; font.pixelSize: 16 }
+                Text { text: "#"; font.pixelSize: 16 }
                 Text {
                     text: "发生在此处的经文"
                     font.pixelSize: 16
-                    font.bold: true
+                    // font.bold: true
                     color: "#333"
                 }
             }
@@ -483,18 +466,18 @@ Item {
                         anchors.fill: parent
                         anchors.margins: 15
                         Text {
-                            text: "📍"
+                            text: "*"
                             font.pixelSize: 18
                         }
                         Text {
                             text: model.name_cn
                             font.pixelSize: 16
-                            font.bold: true
+                            // font.bold: true
                             color: "#333"
                             Layout.fillWidth: true
                         }
                         Text {
-                            text: "查看经文 ❯"
+                            text: "查看经文 >"
                             font.pixelSize: 14
                             color: "#2C68E6"
                         }

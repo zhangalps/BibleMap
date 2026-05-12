@@ -2,6 +2,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include "DatabaseManager.h"
+#include <QQuickStyle>
 
 int main(int argc, char *argv[])
 {
@@ -11,6 +12,8 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     engine.rootContext()->setContextProperty("dbManager", &dbManager);
+    if (qEnvironmentVariableIsEmpty("QT_QUICK_CONTROLS_STYLE"))
+        QQuickStyle::setStyle(QLatin1String("Material"));
 
     const QUrl url(QStringLiteral("qrc:/BibileMap/Main.qml"));
     QObject::connect(
