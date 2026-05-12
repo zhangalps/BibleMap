@@ -324,6 +324,78 @@ QString DatabaseManager::getBookName(const QString &shortName)
     return shortName;
 }
 
+QVariantList DatabaseManager::getAllBooks()
+{
+    QVariantList list;
+    if (!m_bibleDb.isOpen()) return list;
+    
+    QSqlQuery query(m_bibleDb);
+    query.prepare("SELECT id, short_name, name_cn FROM books ORDER BY id ASC");
+    if (query.exec()) {
+        while (query.next()) {
+            QVariantMap map;
+            int id = query.value(0).toInt();
+            map["id"] = id;
+            map["short_name"] = query.value(1).toString();
+            map["name_cn"] = query.value(2).toString();
+            map["is_nt"] = (id >= 40);
+            list.append(map);
+        }
+    } else {
+        qWarning() << "getAllBooks error:" << query.lastError().text();
+    }
+    return list;
+}
+
+int DatabaseManager::getChapterCount(const QString &book)
+{
+    if (!m_bibleDb.isOpen()) return 0;
+    
+    QSqlQuery bookQuery(m_bibleDb);
+    bookQuery.prepare("SELECT id FROM books WHERE short_name = ? OR name_cn = ?");
+    bookQuery.addBindValue(book);
+    bookQuery.addBindValue(book);
+    int bookId = -1;
+    if (bookQuery.exec() && bookQuery.next()) {
+        bookId = bookQuery.value(0).toInt();
+    } else {
+        return 0;
+    }
+    
+    QSqlQuery query(m_bibleDb);
+    query.prepare("SELECT MAX(chapter) FROM verses WHERE book_id = ?");
+    query.addBindValue(bookId);
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
+}
+
+int DatabaseManager::getVerseCount(const QString &book, int chapter)
+{
+    if (!m_bibleDb.isOpen()) return 0;
+    
+    QSqlQuery bookQuery(m_bibleDb);
+    bookQuery.prepare("SELECT id FROM books WHERE short_name = ? OR name_cn = ?");
+    bookQuery.addBindValue(book);
+    bookQuery.addBindValue(book);
+    int bookId = -1;
+    if (bookQuery.exec() && bookQuery.next()) {
+        bookId = bookQuery.value(0).toInt();
+    } else {
+        return 0;
+    }
+    
+    QSqlQuery query(m_bibleDb);
+    query.prepare("SELECT MAX(verse) FROM verses WHERE book_id = ? AND chapter = ?");
+    query.addBindValue(bookId);
+    query.addBindValue(chapter);
+    if (query.exec() && query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
+}
+
 QString DatabaseManager::adapterBookName(const QString &shortName)
 {
     QString lowName = shortName.toLower();

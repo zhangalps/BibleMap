@@ -23,6 +23,9 @@ public:
     Q_INVOKABLE QVariantList searchPlaces(const QString &keyword);
     Q_INVOKABLE QVariantList getVerses(const QString &book, int chapter);
     Q_INVOKABLE QString getBookName(const QString &shortName);
+    Q_INVOKABLE QVariantList getAllBooks();
+    Q_INVOKABLE int getChapterCount(const QString &book);
+    Q_INVOKABLE int getVerseCount(const QString &book, int chapter);
 
 private:
     bool initDatabases();

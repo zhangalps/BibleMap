@@ -267,7 +267,7 @@ Item {
                             text: model.name_cn
                             color: "#333"
                             font.pixelSize: 12
-                            font.bold: true
+                            // font.bold: true
                         }
                     }
                 }
@@ -406,7 +406,7 @@ Item {
                                 anchors.centerIn: parent
                                 text: dbManager.getBookName(model.book) + " " + model.chapter + ":" + model.verse
                                 font.pixelSize: 12
-                                font.bold: true
+                                // font.bold: true
                                 color: "#2C68E6"
                             }
                         }
@@ -435,11 +435,7 @@ Item {
                         propagateComposedEvents: false
                         onClicked: {
                             placePopup.close();
-                            stackView.push("BiblePage.qml", {
-                                               bookName: model.book,
-                                               chapterNum: model.chapter,
-                                               targetVerse: model.verse
-                                           });
+                            window.openBibleAt(model.book, model.chapter, model.verse);
                         }
                     }
                 }

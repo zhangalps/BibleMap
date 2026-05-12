@@ -7,5 +7,7 @@
         <file>resource/bible_selected.svg</file>
         <file>resource/search.svg</file>
         <file>resource/cancel.svg</file>
+        <file>resource/map.svg</file>
+        <file>resource/map_selected.svg</file>
     </qresource>
 </RCC>

@@ -7,6 +7,9 @@
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);
+    app.setOrganizationName("MyOrg");
+    app.setOrganizationDomain("myorg.com");
+    app.setApplicationName("BibleMap");
 
     DatabaseManager dbManager;
 
