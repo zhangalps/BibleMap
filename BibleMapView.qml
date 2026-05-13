@@ -7,47 +7,9 @@ import QtPositioning
 Item {
     id: root
     property var allPlaces: []
-    property var aijiPath: [
-        QtPositioning.coordinate(30.8010, 31.8410),  // 兰塞 (Rameses) - 出发地
-        QtPositioning.coordinate(30.5500, 32.0900),  // 疏割 (Succoth)
-        QtPositioning.coordinate(29.9800, 32.5500),  // 伊坦/红海边 (Etham / near Suez)
-        QtPositioning.coordinate(29.1000, 32.6500),  // 以琳 (Elim)
-        QtPositioning.coordinate(29.1000, 33.1000),  // 以琳 (Elim)
-        QtPositioning.coordinate(28.5390, 33.9750),  // 西奈山 (Mount Sinai / Jebel Musa)
-        QtPositioning.coordinate(29.5300, 34.9900),  // 以旬迦别 (Ezion-Geber / 亚喀巴)
-        QtPositioning.coordinate(30.6400, 34.4200),  // 加低斯巴尼亚 (Kadesh-barnea)
-        QtPositioning.coordinate(31.7680, 35.7190),  // 尼波山 (Mount Nebo)
-        QtPositioning.coordinate(31.8600, 35.4600)   // 耶利哥 (Jericho) - 进入迦南地
-    ]
-    property var jPath:[
-        QtPositioning.coordinate(31.7050, 35.2020),  // 伯利恒 (Bethlehem) - 降生
-        QtPositioning.coordinate(30.0444, 31.2357),  // 逃往埃及 (Flight to Egypt - 以开罗区域为代表)
-        QtPositioning.coordinate(32.7020, 35.3030),  // 拿撒勒 (Nazareth) - 童年与成长
-        QtPositioning.coordinate(31.8360, 35.5460),  // 约旦河外伯大尼 (Jordan River Baptism site) - 受洗
-        QtPositioning.coordinate(31.8700, 35.3900),  // 犹大旷野 (Judean Wilderness) - 受试探
-        QtPositioning.coordinate(32.7400, 35.3300),  // 迦拿 (Cana) - 变水为酒
-        QtPositioning.coordinate(32.8800, 35.5700),  // 迦百农/加利利海 (Capernaum / Sea of Galilee) - 主要传道区
-        QtPositioning.coordinate(33.2400, 35.6900),  // 凯撒利亚·腓立比 (Caesarea Philippi)
-        QtPositioning.coordinate(31.7780, 35.2350)   // 耶路撒冷 (Jerusalem) - 受难、复活与升天
-    ]
-    property var paulPath:[
-        QtPositioning.coordinate(36.2020, 36.1600),  // 安提阿 (Antioch) - 传道起点
-        QtPositioning.coordinate(37.8710, 32.4840),  // 以哥念 (Iconium / 今土耳其科尼亚)
-        QtPositioning.coordinate(37.9400, 27.3400),  // 以弗所 (Ephesus)
-        QtPositioning.coordinate(39.7500, 26.1600),  // 特罗亚 (Troas)
-        QtPositioning.coordinate(41.0120, 24.2840),  // 腓立比 (Philippi) - 进入马其顿
-        QtPositioning.coordinate(40.6400, 22.9440),  // 帖撒罗尼迦 (Thessalonica)
-        QtPositioning.coordinate(37.9830, 23.7270),  // 雅典 (Athens)
-        QtPositioning.coordinate(37.9060, 22.8780),  // 哥林多 (Corinth)
-        QtPositioning.coordinate(31.7780, 35.2350),  // 耶路撒冷 (Jerusalem) - 被捕
-        QtPositioning.coordinate(32.5010, 34.8980),  // 凯撒利亚 (Caesarea Maritima) - 囚禁与审判
-        QtPositioning.coordinate(34.9310, 24.8210),  // 克里特岛佳澳 (Fair Havens, Crete)
-        QtPositioning.coordinate(35.8840, 14.4150),  // 马耳他 (Malta) - 遭遇海难
-        QtPositioning.coordinate(37.0750, 15.2860),  // 叙拉古 (Syracuse, Sicily)
-        QtPositioning.coordinate(41.9020, 12.4960)   // 罗马 (Rome) - 终点
-    ]
     property string pathColor: "#ff00000"
     property int highlightedPlaceId: -2
+    property var currentPolylinePath: []
 
     Plugin {
         id: mapPlugin
@@ -97,30 +59,150 @@ Item {
         placePopup.open();
     }
 
-    function getPath(type){
-        var pathList = []
-        switch(type) {
-        case 0:
-            pathColor = "#ff0000"
-            pathList = aijiPath;
-            break;
-        case 1:
-            pathColor = "#0000ff"
-            pathList = jPath;
-            break;
-        case 2:
-            pathColor = "#00ff00"
-            pathList = paulPath;
-            break;
+    function generateSmoothPath(coords) {
+        if (coords.length < 2) return coords;
+        var result = [];
+        var p = [];
+        
+        p.push(coords[0]);
+        for (var i = 0; i < coords.length; i++) {
+            p.push(coords[i]);
         }
-        return pathList
+        p.push(coords[coords.length - 1]);
+
+        var segments = 20;
+        for (var i = 1; i < p.length - 2; i++) {
+            var p0 = p[i - 1];
+            var p1 = p[i];
+            var p2 = p[i + 1];
+            var p3 = p[i + 2];
+
+            for (var j = 0; j <= segments; j++) {
+                var t = j / segments;
+                if (j === segments && i < p.length - 3) continue;
+
+                var t2 = t * t;
+                var t3 = t2 * t;
+
+                var lat = 0.5 * ((2 * p1.latitude) +
+                                 (-p0.latitude + p2.latitude) * t +
+                                 (2 * p0.latitude - 5 * p1.latitude + 4 * p2.latitude - p3.latitude) * t2 +
+                                 (-p0.latitude + 3 * p1.latitude - 3 * p2.latitude + p3.latitude) * t3);
+                                 
+                var lon = 0.5 * ((2 * p1.longitude) +
+                                 (-p0.longitude + p2.longitude) * t +
+                                 (2 * p0.longitude - 5 * p1.longitude + 4 * p2.longitude - p3.longitude) * t2 +
+                                 (-p0.longitude + 3 * p1.longitude - 3 * p2.longitude + p3.longitude) * t3);
+
+                result.push(QtPositioning.coordinate(lat, lon));
+            }
+        }
+        return result;
+    }
+
+    function updateRoute() {
+        var routeIds = [];
+        root.pathColor = "transparent";
+        var routeName = "";
+
+        if (currentRoute === 0) {
+            routeIds = [1020, 1158, 1076, 387, 900, 442, 702, 893, 675]; // 出埃及
+            root.pathColor = "#ff0000";
+            routeName = "出埃及路线";
+        } else if (currentRoute === 1) {
+            routeIds = [231, 381, 920, 198, 1278, 283, 286, 278, 678]; // 耶稣生平
+            root.pathColor = "#0000ff";
+            routeName = "耶稣生平路线";
+        } else if (currentRoute === 2) {
+            routeIds = [76, 636, 415, 1230, 980, 1205, 130, 321, 678, 277, 753, 804, 1166, 1056]; // 保罗传道
+            root.pathColor = "#00ff00";
+            routeName = "保罗传道路线";
+        }
+
+        if (currentRoute >= 0) {
+            // Ensure all route places from subPlaces are in placeModel
+            for (var j = 0; j < routeIds.length; j++) {
+                var rId = routeIds[j];
+                var found = false;
+                for (var k = 0; k < placeModel.count; k++) {
+                    if (placeModel.get(k).id === rId) {
+                        found = true; break;
+                    }
+                }
+                if (!found) {
+                    for (var i = 0; i < root.allPlaces.length; i++) {
+                        var p = root.allPlaces[i];
+                        if (p.isCluster && p.subPlaces) {
+                            for (var s = 0; s < p.subPlaces.length; s++) {
+                                if (p.subPlaces[s].id === rId) {
+                                    placeModel.append({
+                                        id: p.subPlaces[s].id,
+                                        name_cn: p.subPlaces[s].name_cn,
+                                        lat: p.subPlaces[s].lat,
+                                        lon: p.subPlaces[s].lon,
+                                        type: p.subPlaces[s].type,
+                                        isCluster: false,
+                                        minZoom: p.subPlaces[s].minZoom || 12,
+                                        inCurrentRoute: false,
+                                        routeOrder: 0
+                                    });
+                                    found = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (found) break;
+                    }
+                }
+            }
+        }
+
+        // Update placeModel to only show route markers
+        for (var i = 0; i < placeModel.count; i++) {
+            var item = placeModel.get(i);
+            var idx = routeIds.indexOf(item.id);
+            if (currentRoute >= 0 && idx >= 0) {
+                placeModel.setProperty(i, "inCurrentRoute", true);
+                placeModel.setProperty(i, "routeOrder", idx + 1);
+            } else {
+                placeModel.setProperty(i, "inCurrentRoute", false);
+                placeModel.setProperty(i, "routeOrder", 0);
+            }
+        }
+        
+        // Build polyline path
+        var currentPath = [];
+        if (currentRoute >= 0) {
+            for (var j = 0; j < routeIds.length; j++) {
+                var rId = routeIds[j];
+                for (var k = 0; k < placeModel.count; k++) {
+                    if (placeModel.get(k).id === rId) {
+                        currentPath.push(QtPositioning.coordinate(placeModel.get(k).lat, placeModel.get(k).lon));
+                        break;
+                    }
+                }
+            }
+            if (routeBannerText) {
+                routeBannerText.text = "当前路线：" + routeName;
+            }
+        }
+        root.currentPolylinePath = generateSmoothPath(currentPath);
+        
+        // Center the map
+        if (currentRoute >= 0 && currentPath.length > 0) {
+            bible_map.map.center = currentPath[0];
+            bible_map.map.zoomLevel = 6;
+        }
     }
 
     ListModel {
         id: placeModel
     }
 
-    property int currentRoute: 0
+    property int currentRoute: -1
+    onCurrentRouteChanged: {
+        updateRoute();
+    }
 
     MapComponent {
         id: bible_map
@@ -142,6 +224,7 @@ Item {
 
         // Search Bar overlay
         Row {
+            id: searchRow
             z: 2
             anchors.top: parent.top
             anchors.horizontalCenter: parent.horizontalCenter
@@ -200,6 +283,7 @@ Item {
                         text: "清除路线 / 自由探索"
                         onTriggered: { currentRoute = -1 }
                     }
+
                     Action {
                         text: "出埃及路线 (概略)"
                         onTriggered: { currentRoute = 0 }
@@ -211,6 +295,57 @@ Item {
                     Action {
                         text: "保罗第一次传道"
                         onTriggered: { currentRoute = 2 }
+                    }
+                }
+            }
+        }
+
+        // Route Banner
+        Rectangle {
+            id: routeBanner
+            visible: root.currentRoute >= 0
+            anchors.top: searchRow.bottom
+            anchors.topMargin: 10
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: routeBannerRow.width + 40
+            height: 40
+            color: "#EAF2FF"
+            radius: 20
+            border.color: "#2C68E6"
+            border.width: 1
+            z: 2
+            
+            RowLayout {
+                id: routeBannerRow
+                anchors.centerIn: parent
+                spacing: 10
+                
+                Text {
+                    id: routeBannerText
+                    text: "当前路线"
+                    font.pixelSize: 14
+                    color: "#2C68E6"
+                    // font.bold: true
+                }
+                
+                Rectangle {
+                    width: 1
+                    height: 20
+                    color: "#A0BFF8"
+                }
+                
+                Text {
+                    text: "退出模式 x"
+                    font.pixelSize: 14
+                    color: "#E91E63"
+                    // font.bold: true
+                    
+                    MouseArea {
+                        anchors.fill: parent
+                        anchors.margins: -10
+                        onClicked: {
+                            root.currentRoute = -1;
+                        }
                     }
                 }
             }
@@ -228,7 +363,9 @@ Item {
                                       lon: root.allPlaces[i].lon,
                                       type: root.allPlaces[i].type,
                                       isCluster: root.allPlaces[i].isCluster || false,
-                                      minZoom: root.allPlaces[i].minZoom || 12
+                                      minZoom: root.allPlaces[i].minZoom || 12,
+                                      inCurrentRoute: false,
+                                      routeOrder: 0
                                   })
             }
         }
@@ -239,18 +376,26 @@ Item {
             delegate: MapQuickItem {
                 coordinate: QtPositioning.coordinate(model.lat, model.lon)
                 anchorPoint: Qt.point(sourceItem.width / 2, sourceItem.height)
-                visible: bible_map.map.zoomLevel >= (model.minZoom || 12)
+                visible: root.currentRoute >= 0 ? model.inCurrentRoute : (bible_map.map.zoomLevel >= (model.minZoom || 12))
                 sourceItem: Column {
                     spacing: 4
                     Rectangle {
-                        id: flag_rect
-                        width: model.id === root.highlightedPlaceId ? 22 : 16
-                        height: model.id === root.highlightedPlaceId ? 22 : 16
+                        width: model.inCurrentRoute ? 24 : (model.id === root.highlightedPlaceId ? 22 : 16)
+                        height: model.inCurrentRoute ? 24 : (model.id === root.highlightedPlaceId ? 22 : 16)
                         radius: width / 2
-                        color: model.id === root.highlightedPlaceId ? "#FF00FF" : (model.isCluster ? "#FF5722" : "#FFB300") // Different color for highlight and cluster
+                        color: model.inCurrentRoute ? root.pathColor : (model.id === root.highlightedPlaceId ? "#E91E63" : (model.isCluster ? "#FF5722" : "#FFB300"))
                         border.color: "white"
                         border.width: 3
                         anchors.horizontalCenter: parent.horizontalCenter
+                        
+                        Text {
+                            anchors.centerIn: parent
+                            text: model.routeOrder || ""
+                            color: "white"
+                            font.pixelSize: 12
+                            // font.bold: true
+                            visible: model.inCurrentRoute
+                        }
                         
                         TapHandler {
                             margin: 10 // larger hit area
@@ -291,16 +436,15 @@ Item {
             }
         }
 
-        // Hardcoded Exodus path
+        // Dynamic Route Polyline
         MapItemView {
-            id: pathMapItem
             model: root.currentRoute >= 0 ? 1 : 0
             parent: bible_map.map
             delegate: MapPolyline {
                 line.width: 5
-                line.color: pathColor // Red for exodus
+                line.color: root.pathColor
                 opacity: 0.7
-                path: getPath(root.currentRoute)
+                path: root.currentPolylinePath
             }
         }
 

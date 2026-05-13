@@ -147,17 +147,17 @@ MapView {
         }
     }
 
-    MapQuickItem {
-        parent: view.map
-        id: poiTheQtCompany
-        sourceItem: Rectangle { width: 14; height: 14; color: "#e41e25"; border.width: 2; border.color: "white"; smooth: true; radius: 7 }
-        coordinate {
-            latitude: 59.9485
-            longitude: 10.7686
-        }
-        opacity:1.0
-        anchorPoint: Qt.point(sourceItem.width/2, sourceItem.height/2)
-    }
+    // MapQuickItem {
+    //     parent: view.map
+    //     id: poiTheQtCompany
+    //     sourceItem: Rectangle { width: 14; height: 14; color: "#e41e25"; border.width: 2; border.color: "white"; smooth: true; radius: 7 }
+    //     coordinate {
+    //         latitude: 59.9485
+    //         longitude: 10.7686
+    //     }
+    //     opacity:1.0
+    //     anchorPoint: Qt.point(sourceItem.width/2, sourceItem.height/2)
+    // }
 
     // MapQuickItem {
     //     parent: view.map
