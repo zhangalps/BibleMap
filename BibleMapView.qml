@@ -47,6 +47,7 @@ Item {
         QtPositioning.coordinate(41.9020, 12.4960)   // 罗马 (Rome) - 终点
     ]
     property string pathColor: "#ff00000"
+    property int highlightedPlaceId: -2
 
     Plugin {
         id: mapPlugin
@@ -59,10 +60,16 @@ Item {
             var results = dbManager.searchPlaces(keyword);
             if (results.length > 0) {
                 var place = results[0];
+                root.highlightedPlaceId = place.id;
+                console.log(" place_id:" + place.id)
                 bible_map.map.center = QtPositioning.coordinate(place.lat, place.lon);
                 bible_map.map.zoomLevel = 12;
                 openPopup(place.id, place.name_cn, false);
+            } else {
+                root.highlightedPlaceId = -2;
             }
+        } else {
+            root.highlightedPlaceId = -2;
         }
     }
 
@@ -149,6 +156,14 @@ Item {
 
                 height: 42
                 onAccepted: root.performSearch()
+                onTextChanged: {
+                    if (text.trim().length === 0) {
+                        root.highlightedPlaceId = -2;
+                    }
+                }
+                onCleared: {
+                    root.highlightedPlaceId = -2;
+                }
             }
             
             ActionButtuon {
@@ -202,6 +217,7 @@ Item {
         }
 
         Component.onCompleted: {
+            console.log("map zoom min:" + bible_map.map.minimumZoomLevel + " max:" + bible_map.map.maximumZoomLevel)
             root.allPlaces = dbManager.getAllPlaces()
             placeModel.clear()
             for (var i = 0; i < root.allPlaces.length; i++) {
@@ -227,10 +243,11 @@ Item {
                 sourceItem: Column {
                     spacing: 4
                     Rectangle {
-                        width: 16
-                        height: 16
-                        radius: 8
-                        color: model.isCluster ? "#FF5722" : "#FFB300" // Different color for cluster
+                        id: flag_rect
+                        width: model.id === root.highlightedPlaceId ? 22 : 16
+                        height: model.id === root.highlightedPlaceId ? 22 : 16
+                        radius: width / 2
+                        color: model.id === root.highlightedPlaceId ? "#FF00FF" : (model.isCluster ? "#FF5722" : "#FFB300") // Different color for highlight and cluster
                         border.color: "white"
                         border.width: 3
                         anchors.horizontalCenter: parent.horizontalCenter

@@ -78,13 +78,13 @@ MapView {
         scaleTimer.restart()
     }
 
-    Keys.onPressed: {
-        if (event.key === Qt.Key_Plus) {
-            map.zoomLevel++
-        } else if (event.key === Qt.Key_Minus) {
-            map.zoomLevel--
-        }
-    }
+    // Keys.onPressed: {
+    //     if (event.key === Qt.Key_Plus) {
+    //         map.zoomLevel++
+    //     } else if (event.key === Qt.Key_Minus) {
+    //         map.zoomLevel--
+    //     }
+    // }
 
     Timer {
         id: scaleTimer

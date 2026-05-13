@@ -13,6 +13,7 @@ Rectangle {
 
     property alias text: textField.text
     signal accepted(string text)
+    signal cleared()
 
     RowLayout {
         width: parent.width - 5
@@ -66,6 +67,7 @@ Rectangle {
                onClicked: {
                    textField.focus = false
                    textField.text = ""
+                   root.cleared()
                }
             }
         }

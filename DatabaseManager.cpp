@@ -79,7 +79,8 @@ QVariantList DatabaseManager::getAllPlaces()
 
     QSet<QString> seenNames;
     // Regex to match trailing numbers optionally preceded by whitespace
-    QRegularExpression regex("\\s*\\d+$");
+    // QRegularExpression regex("\\s*\\d+$");
+    QRegularExpression regex("\\s*(?!1$)\\d+$");
 
     // We will query ordered by lat, lon so identical coords are adjacent
     QSqlQuery query(m_mapDb);
